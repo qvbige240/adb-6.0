@@ -1021,8 +1021,8 @@ void register_usb_transport(usb_handle *usb, const char *serial, const char *dev
 {
     atransport *t = reinterpret_cast<atransport*>(calloc(1, sizeof(atransport)));
     if (t == nullptr) fatal("cannot allocate USB atransport");
-    D("transport: %p init'ing for usb_handle %p (sn='%s')\n", t, usb,
-      serial ? serial : "");
+    D("transport: %p init'ing for usb_handle %p (sn='%s')\n", t, usb, serial ? serial : "");
+    printf("transport: %p init'ing for usb_handle %p (sn='%s')\n", t, usb, serial ? serial : "");
     init_usb_transport(t, usb, (writeable ? CS_OFFLINE : CS_NOPERM));
     if(serial) {
         t->serial = strdup(serial);

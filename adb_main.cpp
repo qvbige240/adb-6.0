@@ -327,6 +327,7 @@ int adb_main(int is_daemon, int server_port)
     D("adb_main(): post init_jdwp()\n");
 #endif
 
+    D("Event loop start..\n");
     if (is_daemon)
     {
         // inform our parent that we are up and running.
@@ -336,7 +337,7 @@ int adb_main(int is_daemon, int server_port)
 #else
         fprintf(stderr, "OK\n");
 #endif
-        start_logging();
+        //start_logging();
     }
     D("Event loop starting\n");
 

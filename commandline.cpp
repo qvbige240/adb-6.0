@@ -66,8 +66,10 @@ static std::string product_file(const char *extra) {
 }
 
 static void version(FILE* out) {
-    fprintf(out, "Android Debug Bridge version %d.%d.%d\nRevision %s\n",
-            ADB_VERSION_MAJOR, ADB_VERSION_MINOR, ADB_SERVER_VERSION, ADB_REVISION);
+    // fprintf(out, "Android Debug Bridge version %d.%d.%d\nRevision %s\n",
+    //         ADB_VERSION_MAJOR, ADB_VERSION_MINOR, ADB_SERVER_VERSION, ADB_REVISION);
+    fprintf(out, "Android Debug Bridge version %d.%d.%d\n",
+            ADB_VERSION_MAJOR, ADB_VERSION_MINOR, ADB_SERVER_VERSION);
 }
 
 static void help() {

@@ -188,7 +188,8 @@ static void find_usb_device(const char *base,
 
             vid = device->idVendor;
             pid = device->idProduct;
-            DBGX("[ %s is V:%04x P:%04x ]\n", devname, vid, pid);
+            // DBGX("[ %s is V:%04x P:%04x fd=%d]\n", devname, vid, pid, fd);
+            D("=====[ %s is V:%04x P:%04x fd=%d]\n", devname, vid, pid, fd);
 
                 // should have config descriptor next
             config = (struct usb_config_descriptor *)bufptr;
@@ -214,9 +215,10 @@ static void find_usb_device(const char *base,
                     }
 
                     DBGX("bInterfaceClass: %d,  bInterfaceSubClass: %d,"
-                         "bInterfaceProtocol: %d, bNumEndpoints: %d\n",
-                         interface->bInterfaceClass, interface->bInterfaceSubClass,
-                         interface->bInterfaceProtocol, interface->bNumEndpoints);
+                        "bInterfaceProtocol: %d, bNumEndpoints: %d\n",
+                        interface->bInterfaceClass,
+                        interface->bInterfaceSubClass,
+                        interface->bInterfaceProtocol, interface->bNumEndpoints);
 
                     if (interface->bNumEndpoints == 2 &&
                             is_adb_interface(vid, pid, interface->bInterfaceClass,
@@ -227,12 +229,20 @@ static void find_usb_device(const char *base,
                         char link[256];
                         char *devpath = NULL;
 
+                        D("bInterfaceClass: %d,  bInterfaceSubClass: %d,"
+                            "bInterfaceProtocol: %d, bNumEndpoints: %d\n",
+                            interface->bInterfaceClass, interface->bInterfaceSubClass,
+                            interface->bInterfaceProtocol, interface->bNumEndpoints);
+
                         DBGX("looking for bulk endpoints\n");
-                            // looks like ADB...
+                        printf("===looking for bulk endpoints [ %s is V:%04x P:%04x fd=%d]\n", devname, vid, pid, fd);
+                        D("looking for bulk endpoints [ %s is V:%04x P:%04x ]\n", devname, vid, pid);
+
+                        // looks like ADB...
                         ep1 = (struct usb_endpoint_descriptor *)bufptr;
                         bufptr += USB_DT_ENDPOINT_SIZE;
-                            // For USB 3.0 SuperSpeed devices, skip potential
-                            // USB 3.0 SuperSpeed Endpoint Companion descriptor
+                        // For USB 3.0 SuperSpeed devices, skip potential
+                        // USB 3.0 SuperSpeed Endpoint Companion descriptor
                         if (bufptr+2 <= devdesc + desclength &&
                             bufptr[0] == USB_DT_SS_EP_COMP_SIZE &&
                             bufptr[1] == USB_DT_SS_ENDPOINT_COMP) {
@@ -303,6 +313,7 @@ static void find_usb_device(const char *base,
                 }
             } // end of while
 
+            D("=====[ %s is V:%04x P:%04x fd=%d  closed =======]\n", devname, vid, pid, fd);
             adb_close(fd);
         } // end of devdir while
         closedir(devdir);
@@ -517,6 +528,10 @@ int usb_read(usb_handle *h, void *_data, int len)
 
 void usb_kick(usb_handle *h)
 {
+    // int res = ioctl(h->desc, USBDEVFS_RESET);
+    // if (res != 0)
+    //     printf("===== res %d USBDEVFS_RESET %s ====== \n", res, strerror(errno));
+    printf("========== usb_kick  ========== \n\n");
     D("[ kicking %p (fd = %d) ]\n", h, h->desc);
     adb_mutex_lock(&h->lock);
     if(h->dead == 0) {
@@ -588,6 +603,8 @@ static void register_device(const char* dev_name, const char* dev_path,
     adb_mutex_unlock(&usb_lock);
 
     D("[ usb located new device %s (%d/%d/%d) ]\n", dev_name, ep_in, ep_out, interface);
+    D("[ usb located new device %s  path %s (%d/%d/%d) ]\n", dev_name, dev_path, ep_in, ep_out, interface);
+    printf("[ usb located new device %s  path %s (%d/%d/%d) ]\n", dev_name, dev_path, ep_in, ep_out, interface);
     usb_handle* usb = reinterpret_cast<usb_handle*>(calloc(1, sizeof(usb_handle)));
     if (usb == nullptr) fatal("couldn't allocate usb_handle");
     strcpy(usb->fname, dev_name);
@@ -622,6 +639,7 @@ static void register_device(const char* dev_name, const char* dev_path,
         if (ioctl(usb->desc, USBDEVFS_CLAIMINTERFACE, &interface) != 0) {
             D("[ usb ioctl(%d, USBDEVFS_CLAIMINTERFACE) failed: %s]\n",
               usb->desc, strerror(errno));
+            printf("====[ usb ioctl(%d, USBDEVFS_CLAIMINTERFACE) failed: %s]\n", usb->desc, strerror(errno));
             adb_close(usb->desc);
             free(usb);
             return;
@@ -641,6 +659,22 @@ static void register_device(const char* dev_name, const char* dev_path,
     }
     serial = android::base::Trim(serial);
 
+    // if (usb->writeable) {
+    //     if (ioctl(usb->desc, USBDEVFS_RELEASEINTERFACE, &interface) != 0) {
+    //         D("[ usb ioctl(%d, USBDEVFS_RELEASEINTERFACE) failed: %s]\n", usb->desc, strerror(errno));
+    //         printf("====[ usb ioctl(%d, USBDEVFS_RELEASEINTERFACE) failed: %s]\n\n", usb->desc, strerror(errno));
+    //         adb_close(usb->desc);
+    //         free(usb);
+    //         return;
+    //     }
+    // }
+
+    D("============[ usb register %s success fd=%d ]========\n\n\n\n\n\n", serial_path.c_str(), usb->desc);
+    printf("============[ usb register %s success fd=%d ]========\n\n\n\n\n\n", serial_path.c_str(), usb->desc);
+    // adb_close(usb->desc);
+    // free(usb);
+    // return;
+
     // Add to the end of the active handles.
     adb_mutex_lock(&usb_lock);
     usb->next = &handle_list;
@@ -657,6 +691,8 @@ static void* device_poll_thread(void* unused) {
     while (true) {
         // TODO: Use inotify.
         find_usb_device("/dev/bus/usb", register_device);
+
+        D("========= plugout=========\n");
         kick_disconnected_devices();
         sleep(1);
     }

@@ -309,7 +309,8 @@ static int get_user_keyfilepath(char *filename, size_t len)
     }
     format = "%s\\%s";
 #else
-    home = getenv("HOME");
+    // home = getenv("HOME");
+    home = "/data";
     if (!home)
         return -1;
     format = "%s/%s";

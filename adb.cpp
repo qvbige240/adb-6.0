@@ -682,7 +682,7 @@ int launch_server(int server_port)
             return -1;
         }
         if (ret != 3 || temp[0] != 'O' || temp[1] != 'K' || temp[2] != '\n') {
-            fprintf(stderr, "ADB server didn't ACK\n" );
+            fprintf(stderr, "ADB server didn't ACK, ret = %d %d %d %d\n", ret, temp[0], temp[1], temp[2] );
             return -1;
         }
 
